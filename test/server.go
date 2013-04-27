@@ -18,7 +18,7 @@ package main
 import (
 	"errors"
 	"flag"
-	"github.com/garyburd/go-websocket/websocket"
+	"github.com/zhangpeihao/go-websocket/websocket"
 	"io"
 	"io/ioutil"
 	"log"
