@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/garyburd/go-websocket/websocket"
+	"github.com/zhangpeihao/go-websocket/websocket"
 )
 
 type wsHandler struct {

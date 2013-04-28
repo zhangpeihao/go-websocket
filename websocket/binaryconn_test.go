@@ -15,8 +15,8 @@
 package websocket_test
 
 import (
+	"bufio"
 	"github.com/zhangpeihao/go-websocket/websocket"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -49,13 +49,13 @@ func (t wsBinaryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 	for {
-		b, err := ioutil.ReadAll(conn)
+		br := bufio.NewReader(conn)
+		str, err := br.ReadString('\n')
 		if err != nil {
-			t.Logf("ioutil.ReadAll(conn)) error: %v", err)
-			return
+			t.Logf("server ReadString error: %v", err)
 		}
 
-		if _, err = conn.Write(b); err != nil {
+		if _, err = conn.Write([]byte(str)); err != nil {
 			t.Logf("conn.Write error: %v", err)
 			return
 		}
@@ -82,17 +82,18 @@ func TestBinaryConn(t *testing.T) {
 		t.Error("Set-Cookie not received from the server.")
 	}
 
-	if _, err = conn.Write([]byte("HELLO")); err != nil {
+	if _, err = conn.Write([]byte("HELLO\n")); err != nil {
 		t.Error("Write err:", err)
 	}
 
-	time.Sleep(time.Second)
 	conn.SetReadDeadline(time.Now().Add(1 * time.Second))
-	b, err := ioutil.ReadAll(conn)
+	var str string
+	br := bufio.NewReader(conn)
+	str, err = br.ReadString('\n')
 	if err != nil {
-		t.Fatalf("ReadAll: %v", err)
+		t.Fatalf("client ReadString: %v", err)
 	}
-	if string(b) != "HELLO" {
-		t.Fatalf("message=%s, want %s", b, "HELLO")
+	if str != "HELLO\n" {
+		t.Fatalf("message=%s, want %s", str, "HELLO\n")
 	}
 }

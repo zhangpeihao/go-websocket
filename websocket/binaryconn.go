@@ -20,7 +20,6 @@
 package websocket
 
 import (
-	"bytes"
 	"io"
 	"net"
 	"net/http"
@@ -32,7 +31,14 @@ import (
 // All data are transfered in binary stream.
 type BinaryConn struct {
 	ws *Conn
+	r  io.Reader
 }
+
+type noMoreDataError struct{}
+
+func (e *noMoreDataError) Error() string   { return "no more data" }
+func (e *noMoreDataError) Timeout() bool   { return true }
+func (e *noMoreDataError) Temporary() bool { return true }
 
 // Connect a web socket hosr, and upgrade to web socket.
 //
@@ -77,30 +83,26 @@ func NewBianryConn(w http.ResponseWriter, r *http.Request, responseHeader http.H
 // after a fixed time limit; see SetDeadline and SetReadDeadline.
 func (conn *BinaryConn) Read(b []byte) (n int, err error) {
 	var opCode int
-	var r io.Reader
-	var length int64
-FOR_LOOP:
-	for {
-		if opCode, r, err = conn.ws.NextReader(); err != nil {
-			return
-		}
-		switch opCode {
-		case OpPong:
-			continue FOR_LOOP
-		case OpBinary:
-			dst := bytes.NewBuffer(b)
-			dst.Reset()
-
-			length, err = io.CopyN(dst, r, int64(len(b)))
-			if err != nil {
-				if err == io.EOF {
-					n = dst.Len()
-				}
+	if conn.r == nil {
+		// New message
+		var r io.Reader
+		for {
+			if opCode, r, err = conn.ws.NextReader(); err != nil {
 				return
-			} else {
-				n = int(length)
 			}
-			return
+			if opCode == OpBinary {
+				conn.r = r
+				break
+			}
+		}
+	}
+
+	n, err = conn.r.Read(b)
+	if err != nil {
+		if err == io.EOF {
+			// Message finished
+			conn.r = nil
+			err = nil
 		}
 	}
 	return
