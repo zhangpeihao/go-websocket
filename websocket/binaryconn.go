@@ -34,12 +34,6 @@ type BinaryConn struct {
 	r  io.Reader
 }
 
-type noMoreDataError struct{}
-
-func (e *noMoreDataError) Error() string   { return "no more data" }
-func (e *noMoreDataError) Timeout() bool   { return true }
-func (e *noMoreDataError) Temporary() bool { return true }
-
 // Connect a web socket hosr, and upgrade to web socket.
 //
 // Examples:
